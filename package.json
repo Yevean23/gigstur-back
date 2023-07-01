@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^11.9.0",
+    "stripe": "^12.11.0"
+  }
+}
