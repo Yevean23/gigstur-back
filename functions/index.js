@@ -8,6 +8,10 @@ const stripe = require("stripe")(YOUR_STRIPE_SECRET_KEY);
 
 admin.initializeApp();
 require("dotenv").config();
+
+
+
+
 exports.sendMoney = functions.https.onRequest(async (req, res) => {
   const { senderId, receiverId, amount } = req.body;
 
@@ -140,3 +144,8 @@ exports.stripeWebhook = functions.https.onRequest((req, res) => {
     res.status(400).send("Invalid webhook event.");
   }
 });
+
+exports.testEndpoint = functions.https.onRequest((req, res) => {
+    console.log(req);
+    res.status(200).send("hello world");
+  });
