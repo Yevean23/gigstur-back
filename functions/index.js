@@ -148,4 +148,4 @@ exports.stripeWebhook = functions.https.onRequest((req, res) => {
 exports.testEndpoint = functions.https.onRequest((req, res) => {
     console.log(req);
     res.status(200).send("hello world");
-  });
+});

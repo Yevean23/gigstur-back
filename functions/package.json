@@ -13,8 +13,10 @@
   },
   "main": "index.js",
   "dependencies": {
-    "firebase-admin": "^11.5.0",
-    "firebase-functions": "^4.2.0"
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^11.9.0",
+    "firebase-functions": "^4.2.0",
+    "stripe": "^12.11.0"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.0.0"
