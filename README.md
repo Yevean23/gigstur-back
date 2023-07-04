@@ -29,6 +29,14 @@ Now it's time to run ```code .``` and start writing some APIs!
 
 # Coding
 
+On an architectural level, the code can do two things:
+1. react to classic http requests. this is the typical api endpoints and include the stripe returning webhook.
+2. react to changes in the firestore database.
+
+I'm thinking that all business logic will be hidden behind a layer of abstraction.
+That is, most if not all requests will simply update a value in a *Transactions* collection in the firestore database.
+Then a listener will pick up on the change and perform logic such as stripe transfers in the background.
+The stripe webhook will then update the value in *Transactions* to be *complete* and the front-end will respond to that.
 
 # Deployment
 
