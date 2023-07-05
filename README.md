@@ -1,5 +1,5 @@
-# gigstur-back
-gig-stur backend
+# Gigstur Backend
+A Firebase project
 
 # Starting the Project
 
@@ -27,16 +27,44 @@ Note, the depedencies have to be intstalled into the ```package.json``` of the `
 
 Now it's time to run ```code .``` and start writing some APIs!
 
+Modify ```./functions/index.js``` as the interface with google cloud functions.
+
+You can create and import custom packages to ```index.js```, but the imports should also only act as interfaces.
+
 # Coding
 
-On an architectural level, the code can do two things:
-1. react to classic http requests. this is the typical api endpoints and include the stripe returning webhook.
+Before typing any code, we have to understand what the tools are at our disposal.
+
+All business logic will be hidden behind layers of abstraction.
+
+That is, most if not all requests will simply update a value in a *Transactions* collection in the firestore database.
+Then, a listener will pick up on the change and perform logic such as stripe transfers in the background.
+The stripe webhook will then update the value in *Transactions* to be *complete*, and finally the front-end will respond to that.
+
+On an architectural level, the API code can do two things:
+
+1. react to classic RESTful http requests. This is the typical api endpoints you'd expect an app to have.
+
+```exports.endpointName = onRequest(async (req, res) => {});```
+
+```exports.stripeWebhook = functions.https.onRequest((req, res) => {});```
+
+This allows us to have an effective middleware layer with some google protections such as authentication.
+This layer CRUDs documents in the firestore database.
+
+Note: the stripe webhook is simply an endpoint that we create and tell Stripe to ping us at.
+It contains all the information needed to update firestore.
+
 2. react to changes in the firestore database.
 
-I'm thinking that all business logic will be hidden behind a layer of abstraction.
-That is, most if not all requests will simply update a value in a *Transactions* collection in the firestore database.
-Then a listener will pick up on the change and perform logic such as stripe transfers in the background.
-The stripe webhook will then update the value in *Transactions* to be *complete* and the front-end will respond to that.
+```exports.reactToNewUserCreated = functions.auth.user().onCreate(async (user) => {});```
+
+```exports.reactToDocumentCreated = onDocumentCreated("/messages/{documentId}", (event) => {});```
+
+This layer should actually perform all the business logic, such as:
+* reaching out to Stripe and other APIs
+* performing time and ops intensive work
+* asynchronous transactions
 
 # Deployment
 
