@@ -1,16 +1,75 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-
-const YOUR_STRIPE_SECRET_KEY = process.env.STRIPE_API_KEY
-  ? process.env.STRIPE_API_KEY
-  : process.env.STRIPE_API_KEY; // TODO: replace with cloud run deployment variable
-const stripe = require("stripe")(YOUR_STRIPE_SECRET_KEY);
-
 admin.initializeApp();
-require("dotenv").config();
+const cors = require("cors")({ origin: true });
+const stripe = require("stripe")(functions.config().stripe.api_key);
 
+exports.createStripeCustomer = functions.auth.user().onCreate(async (user) => {
+  const { uid, email } = user;
 
+  try {
+    // Create a Stripe customer
+    const customer = await stripe.customers.create({
+      email: email,
+    });
 
+    // Associate Stripe customer ID with the Firebase user
+    await admin.firestore().collection("users").doc(uid).set(
+      {
+        stripeCustomerId: customer.id,
+        balance: 0,
+      },
+      { merge: true }
+    );
+
+    console.log(`Stripe customer created: ${customer.id}`);
+  } catch (error) {
+    console.error("Error creating Stripe customer:", error);
+  }
+});
+
+exports.addMoneyToAccount = functions.https.onRequest(async (req, res) => {
+  cors(req, res, async () => {
+    try {
+        console.log('req',req);
+      const { amount, userId } = req.body; // Assuming the amount and userId are provided in the request body
+
+      // Retrieve the user's document from Firestore
+      const userSnapshot = await admin
+        .firestore()
+        .collection("users")
+        .doc(userId)
+        .get();
+      if (!userSnapshot.exists) {
+        throw new Error("User not found.");
+      }
+
+      const { stripeCustomerId } = userSnapshot.data();
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount, // The transaction amount in cents or smallest currency unit
+        currency: "usd", // The currency code, adjust as needed
+        customer: stripeCustomerId,
+        // Add additional options if needed
+      });
+
+      // Update the user's balance in Firestore
+      const userRef = admin.firestore().collection("users").doc(userId);
+      await userRef.update({
+        balance: admin.firestore.FieldValue.increment(amount),
+      });
+
+      res
+        .status(200)
+        .json({ success: true, message: "Money added successfully." });
+    } catch (error) {
+      console.error("Error adding money to account:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Error adding money to account." });
+    }
+  });
+});
 
 exports.sendMoney = functions.https.onRequest(async (req, res) => {
   const { senderId, receiverId, amount } = req.body;
@@ -73,26 +132,6 @@ exports.sendMoney = functions.https.onRequest(async (req, res) => {
   }
 });
 
-exports.createStripeCustomer = functions.auth.user().onCreate(async (user) => {
-  const { uid, email } = user;
-
-  try {
-    // Create a Stripe customer
-    const customer = await stripe.customers.create({
-      email: email,
-    });
-
-    // Associate Stripe customer ID with the Firebase user
-    await admin.firestore().collection("users").doc(uid).update({
-      stripeCustomerId: customer.id,
-    });
-
-    console.log(`Stripe customer created: ${customer.id}`);
-  } catch (error) {
-    console.error("Error creating Stripe customer:", error);
-  }
-});
-
 exports.stripeWebhook = functions.https.onRequest((req, res) => {
   const { data } = req.body;
 
@@ -146,6 +185,6 @@ exports.stripeWebhook = functions.https.onRequest((req, res) => {
 });
 
 exports.testEndpoint = functions.https.onRequest((req, res) => {
-    console.log(req);
-    res.status(200).send("hello world");
+  console.log(req);
+  res.status(200).send("hello world");
 });

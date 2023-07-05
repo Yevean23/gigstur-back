@@ -35,8 +35,6 @@ You can create and import custom packages to ```index.js```, but the imports sho
 
 ## API Lifecycle
 
-All business logic will be hidden behind layers of abstraction.
-
 Requests will update a value in the *transactions* collection in the firestore database.
 
 Then, a listener will pick up on the change and perform logic such as Stripe transfers in the background.
