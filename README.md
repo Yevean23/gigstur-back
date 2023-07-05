@@ -8,7 +8,7 @@ Start a project, upgrade it to the Blaze plan, set the budget to $0, and add a F
 
 Now it's time to set-up a repository on github to host the code, and clone it into your working directory.
 
-# Install Dependencies
+# Dependencies
 
 If you are cloning the repo, you will have to ```npm install``` before working with it.
 
@@ -31,15 +31,21 @@ Modify ```./functions/index.js``` as the interface with google cloud functions.
 
 You can create and import custom packages to ```index.js```, but the imports should also only act as interfaces.
 
-# Coding
+# Development
 
-Before typing any code, we have to understand what the tools are at our disposal.
+## API Lifecycle
 
 All business logic will be hidden behind layers of abstraction.
 
-That is, most if not all requests will simply update a value in a *Transactions* collection in the firestore database.
-Then, a listener will pick up on the change and perform logic such as stripe transfers in the background.
-The stripe webhook will then update the value in *Transactions* to be *complete*, and finally the front-end will respond to that.
+Requests will update a value in the *transactions* collection in the firestore database.
+
+Then, a listener will pick up on the change and perform logic such as Stripe transfers in the background.
+
+The stripe webhook will then update the value in *transactions* to be *complete*
+
+Finally the front-end will respond to that.
+
+## Project Structure
 
 On an architectural level, the API code can do two things:
 
@@ -74,8 +80,8 @@ firebase deploy --only functions
 
 # Operations
 
-If you try to ping your endpoint from your browser, you may run into an error.
+If you try to ping your endpoint from your browser, you may run into a 403 error.
 
-This is because the endpoint is not configured to be accesible to unauthenticated users.
+This is because the endpoint is not configured to be accesible to unauthenticated public users.
 
 This requires navigating to the Google Cloud Console and adding ```allUsers``` to the ```functionInvoker``` permissions in the function's options.
