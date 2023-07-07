@@ -50,7 +50,7 @@ exports.addMoneyToAccount = functions.https.onRequest(async (req, res) => {
         amount: amount, // The transaction amount in cents or smallest currency unit
         currency: "usd", // The currency code, adjust as needed
         customer: stripeCustomerId,
-        // Add additional options if needed
+        // Add additional  options if needed
       });
 
       // Update the user's balance in Firestore
