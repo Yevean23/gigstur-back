@@ -28,12 +28,61 @@ exports.createStripeCustomer = functions.auth.user().onCreate(async (user) => {
   }
 });
 
+exports.addPaymentMethodToAccount = functions.https.onRequest((req, res) => {
+  cors(req, res, () => {
+    // Ensure the request has necessary parameters
+    if (!req.body.paymentMethodId || !req.body.accountId) {
+      return res.status(400).json({ error: "Missing parameters" });
+    }
+    const paymentMethodId = req.body.paymentMethodId;
+    const accountId = req.body.accountId;
+
+    // Retrieve the account from Firestore
+    const accountRef = admin.firestore().collection("accounts").doc(accountId);
+    accountRef
+      .get()
+      .then((accountDoc) => {
+        if (!accountDoc.exists) {
+          return res.status(404).json({ error: "Account not found" });
+        }
+
+        // Create the payment method in Stripe
+        stripe.paymentMethods
+          .attach(paymentMethodId, {
+            customer: accountDoc.data().stripeCustomerId,
+          })
+          .then(() => {
+            // Update the account in Firestore with the new payment method
+            accountRef.update({ paymentMethodId: paymentMethodId }).then(() => {
+              return res
+                .status(200)
+                .json({ message: "Payment method added successfully" });
+            });
+          })
+          .catch((error) => {
+            console.error(error);
+            return res
+              .status(500)
+              .json({ error: "Failed to add payment method" });
+          });
+      })
+      .catch((error) => {
+        console.error(error);
+        return res.status(500).json({ error: "Failed to retrieve account" });
+      });
+  });
+});
+
 exports.addMoneyToAccount = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     try {
-        console.log('req',req);
-      const { amount, userId } = req.body; // Assuming the amount and userId are provided in the request body
-
+      // const { amount, userId } = req.body.data; // Assuming the amount and userId are provided in the request body
+      const amount = req.body.data.amount;
+      const userId = req.body.data.userId;
+      console.log("body", req.body);
+      console.log("query", req.query);
+      console.log("userid", userId);
+      console.log("amount", amount);
       // Retrieve the user's document from Firestore
       const userSnapshot = await admin
         .firestore()
@@ -44,7 +93,7 @@ exports.addMoneyToAccount = functions.https.onRequest(async (req, res) => {
         throw new Error("User not found.");
       }
 
-      const { stripeCustomerId } = userSnapshot.data();
+      const { stripeCustomerId, balance } = userSnapshot.data();
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount, // The transaction amount in cents or smallest currency unit
@@ -52,11 +101,11 @@ exports.addMoneyToAccount = functions.https.onRequest(async (req, res) => {
         customer: stripeCustomerId,
         // Add additional  options if needed
       });
-
+      const new_bal = Number(balance) + Number(amount);
       // Update the user's balance in Firestore
       const userRef = admin.firestore().collection("users").doc(userId);
       await userRef.update({
-        balance: admin.firestore.FieldValue.increment(amount),
+        balance: new_bal,
       });
 
       res
