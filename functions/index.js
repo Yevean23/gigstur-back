@@ -30,15 +30,15 @@ exports.createStripeCustomer = functions.auth.user().onCreate(async (user) => {
 
 exports.addPaymentMethodToAccount = functions.https.onRequest((req, res) => {
   cors(req, res, () => {
-    // Ensure the request has necessary parameters
+    /*/ Ensure the request has necessary parameters
     if (!req.body.paymentMethodId || !req.body.accountId) {
       return res.status(400).json({ error: "Missing parameters" });
-    }
+    }/*/
     const paymentMethodId = req.body.paymentMethodId;
-    const accountId = req.body.accountId;
+    const userId = req.body.userId;
 
     // Retrieve the account from Firestore
-    const accountRef = admin.firestore().collection("accounts").doc(accountId);
+    const accountRef = admin.firestore().collection("users").doc(userId);
     accountRef
       .get()
       .then((accountDoc) => {
@@ -180,6 +180,54 @@ exports.sendMoney = functions.https.onRequest(async (req, res) => {
     res.status(500).send("An error occurred.");
   }
 });
+
+exports.withdrawMoneyFromAccount = functions.https.onRequest(async (req, res) => {
+  cors(req, res, async () => {
+    try {
+      const { amount, userId } = req.body;
+
+      // Retrieve the user's document from Firestore
+      const userSnapshot = await admin
+        .firestore()
+        .collection("users")
+        .doc(userId)
+        .get();
+
+      if (!userSnapshot.exists) {
+        throw new Error("User not found.");
+      }
+
+      const { stripeCustomerId, balance } = userSnapshot.data();
+
+      // Create a charge in Stripe to withdraw the money
+      const charge = await stripe.charges.create({
+        amount: amount * 100, // Convert to cents
+        currency: "usd",
+        customer: stripeCustomerId,
+        description: "Withdrawal from user's account",
+      });
+
+      // Calculate the new balance after withdrawal
+      const newBalance = balance - amount;
+
+      // Update the user's balance in Firestore
+      const userRef = admin.firestore().collection("users").doc(userId);
+      await userRef.update({
+        balance: newBalance,
+      });
+
+      res
+        .status(200)
+        .json({ success: true, message: "Money withdrawn successfully." });
+    } catch (error) {
+      console.error("Error withdrawing money from account:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Error withdrawing money from account." });
+    }
+  });
+});
+
 
 exports.stripeWebhook = functions.https.onRequest((req, res) => {
   const { data } = req.body;
