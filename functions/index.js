@@ -285,3 +285,30 @@ exports.testEndpoint = functions.https.onRequest((req, res) => {
   console.log(req);
   res.status(200).send("hello world");
 });
+
+
+exports.createGig = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      // Retrieve the necessary data from the request body
+      const { title, description, price, userId } = req.body;
+
+      // Create a new gig document in Firestore
+      const gigData = {
+        title: title,
+        description: description,
+        price: price,
+        userId: userId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      const gigRef = admin.firestore().collection("gigs");
+      const newGig = await gigRef.add(gigData);
+
+      res.status(200).json({ success: true, gigId: newGig.id });
+    } catch (error) {
+      console.error("Error creating gig:", error);
+      res.status(500).json({ success: false, message: "Error creating gig." });
+    }
+  });
+});
