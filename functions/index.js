@@ -312,3 +312,65 @@ exports.createGig = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+exports.getGig = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      const gigId = req.query.gigId;
+
+      // Retrieve the gig document from Firestore
+      const gigSnapshot = await admin.firestore().collection("gigs").doc(gigId).get();
+
+      if (!gigSnapshot.exists) {
+        res.status(404).json({ success: false, message: "Gig not found." });
+        return;
+      }
+
+      const gigData = gigSnapshot.data();
+
+      res.status(200).json({ success: true, gig: gigData });
+    } catch (error) {
+      console.error("Error getting gig:", error);
+      res.status(500).json({ success: false, message: "Error getting gig." });
+    }
+  });
+});
+
+
+exports.updateGig = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      const { gigId, title, description, price } = req.body;
+
+      // Update the gig document in Firestore
+      const gigRef = admin.firestore().collection("gigs").doc(gigId);
+      await gigRef.update({
+        title: title,
+        description: description,
+        price: price,
+      });
+
+      res.status(200).json({ success: true, message: "Gig updated successfully." });
+    } catch (error) {
+      console.error("Error updating gig:", error);
+      res.status(500).json({ success: false, message: "Error updating gig." });
+    }
+  });
+});
+
+
+exports.deleteGig = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      const gigId = req.body.gigId;
+
+      // Delete the gig document from Firestore
+      await admin.firestore().collection("gigs").doc(gigId).delete();
+
+      res.status(200).json({ success: true, message: "Gig deleted successfully." });
+    } catch (error) {
+      console.error("Error deleting gig:", error);
+      res.status(500).json({ success: false, message: "Error deleting gig." });
+    }
+  });
+});
