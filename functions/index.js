@@ -73,6 +73,28 @@ exports.addPaymentMethodToAccount = functions.https.onRequest((req, res) => {
   });
 });
 
+exports.savePaymentMethod = functions.https.onCall(async (data, context) => {
+  // Check if the user is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+  }
+
+  try {
+    const { paymentMethodId, customerId, cardData } = data;
+
+    // Save payment method to Stripe
+    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+
+    // Save card data to Firebase
+    const userId = context.auth.uid;
+    await admin.firestore().collection('users').doc(userId).collection('cards').doc(paymentMethodId).set(cardData);
+
+    return { message: 'Payment method saved successfully.' };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', 'An error occurred while saving the payment method.', error);
+  }
+});
+
 exports.addMoneyToAccount = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     try {
