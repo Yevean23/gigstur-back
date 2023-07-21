@@ -63,7 +63,7 @@ exports.addPaymentMethodToAccount = functions.https.onRequest((req, res) => {
             console.error(error);
             return res
               .status(500)
-              .json({ error: "Failed to add payment method" });
+              .json({ error: "Failed to add  payment method" });
           });
       })
       .catch((error) => {
