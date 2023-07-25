@@ -30,10 +30,10 @@ exports.createStripeCustomer = functions.auth.user().onCreate(async (user) => {
 
 exports.addPaymentMethodToAccount = functions.https.onRequest((req, res) => {
   cors(req, res, () => {
-    /*/ Ensure the request has necessary parameters
+    // Ensure the request has necessary parameters
     if (!req.body.paymentMethodId || !req.body.accountId) {
       return res.status(400).json({ error: "Missing parameters" });
-    }/*/
+    }
     const paymentMethodId = req.body.paymentMethodId;
     const userId = req.body.userId;
 
