@@ -396,3 +396,41 @@ exports.deleteGig = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+
+exports.getPaymentMethods = functions.https.onCall(async (data, context) => {
+  // Check if the user is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+  }
+
+  try {
+    const userId = context.auth.uid;
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+
+    // Check if the user document exists and has a stripeCustomerId
+    if (!userDoc.exists || !userDoc.data().stripeCustomerId) {
+      throw new functions.https.HttpsError('not-found', 'User not found or no Stripe customer ID.');
+    }
+
+    const stripeCustomerId = userDoc.data().stripeCustomerId;
+
+    // Retrieve the customer's payment methods from Stripe
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: stripeCustomerId,
+      type: 'card', // You can adjust this if you want to retrieve other types of payment methods.
+    });
+
+    // Extract the relevant payment method information
+    const paymentMethodsData = paymentMethods.data.map((paymentMethod) => ({
+      id: paymentMethod.id,
+      last4: paymentMethod.card.last4,
+      brand: paymentMethod.card.brand,
+      // Add more card information you want to return if needed.
+    }));
+
+    return { paymentMethods: paymentMethodsData };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', 'An error occurred while retrieving payment methods.', error);
+  }
+});
