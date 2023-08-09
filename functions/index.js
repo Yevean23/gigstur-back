@@ -434,3 +434,25 @@ exports.getPaymentMethods = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', 'An error occurred while retrieving payment methods.', error);
   }
 });
+
+exports.getBalance = functions.https.onCall(async (data, context) => {
+  // Check if the user is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+  }
+
+  try {
+    const userId = context.auth.uid;
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'User not found.');
+    }
+
+    const balance = userDoc.data().balance;
+
+    return { balance: balance };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', 'An error occurred while retrieving balance.', error);
+  }
+});
